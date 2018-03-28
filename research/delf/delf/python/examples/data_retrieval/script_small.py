@@ -18,7 +18,7 @@ import sys, os, multiprocessing, csv
 from urllib import request, error
 from PIL import Image
 from io import BytesIO
-
+import tqdm as tqdm
 
 def parse_data(data_file):
     csvfile = open(data_file, 'r')
@@ -74,7 +74,7 @@ def loader():
         os.mkdir(out_dir)
 
     key_url_list = parse_data(data_file)
-    key_url_list = key_url_list[:100]
+    key_url_list = key_url_list[:20]
     pool = multiprocessing.Pool(processes=20)  # Num of CPUs
     failures = sum(tqdm.tqdm(pool.imap_unordered(download_image, key_url_list), total=len(key_url_list)))
     print('Total number of download failures:', failures)

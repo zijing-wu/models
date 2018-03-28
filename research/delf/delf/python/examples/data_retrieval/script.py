@@ -18,7 +18,7 @@ import sys, os, multiprocessing, csv
 from urllib import request, error
 from PIL import Image
 from io import BytesIO
-
+import tqdm as tqdm
 
 def parse_data(data_file):
     csvfile = open(data_file, 'r')
