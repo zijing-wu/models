@@ -92,7 +92,7 @@ def main():
         d1_tree = cKDTree(descriptors_1)
         num_features_1 = locations_1.shape[0]
         for index_id in dict_features_index: #2
-            index_feature = dict_features_query[index_id]
+            index_feature = dict_features_index[index_id]
             locations_2 = index_feature['loc']
             descriptors_2 = index_feature['des']
             num_features_2 = locations_2.shape[0]
