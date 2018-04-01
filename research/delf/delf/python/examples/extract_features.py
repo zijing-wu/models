@@ -41,7 +41,7 @@ cmd_args = None
 _DELF_EXT = '.delf'
 
 # Pace to report extraction log.
-_STATUS_CHECK_ITERATIONS = 10
+_STATUS_CHECK_ITERATIONS = 100
 
 
 def _ReadImageList(list_path):
