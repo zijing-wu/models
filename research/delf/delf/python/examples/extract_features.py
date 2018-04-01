@@ -125,6 +125,7 @@ def main(unused_argv):
           start = time.clock()
 
         # # Get next image.
+        
         im = sess.run(image_tf)
 
         # If descriptor already exists, skip its computation.
@@ -134,21 +135,27 @@ def main(unused_argv):
         if tf.gfile.Exists(out_desc_fullpath):
           tf.logging.info('Skipping %s', image_paths[i])
           continue
-
-        # Extract and save features.
-        (locations_out, descriptors_out, feature_scales_out,
-         attention_out) = sess.run(
-             [locations, descriptors, feature_scales, attention],
-             feed_dict={
-                 input_image:
-                     im,
-                 input_score_threshold:
-                     config.delf_local_config.score_threshold,
-                 input_image_scales:
-                     list(config.image_scales),
-                 input_max_feature_num:
-                     config.delf_local_config.max_feature_num
-             })
+        
+        try:
+            # Extract and save features.
+            (locations_out, descriptors_out, feature_scales_out,
+             attention_out) = sess.run(
+                 [locations, descriptors, feature_scales, attention],
+                 feed_dict={
+                     input_image:
+                         im,
+                     input_score_threshold:
+                         config.delf_local_config.score_threshold,
+                     input_image_scales:
+                         list(config.image_scales),
+                     input_max_feature_num:
+                         config.delf_local_config.max_feature_num
+                 })
+        except:
+            tf.logging.info('ERROR: Skipping %s', image_paths[i])
+            continue
+        
+        
 
         feature_io.WriteToFile(out_desc_fullpath, locations_out,
                                feature_scales_out, descriptors_out,
