@@ -136,9 +136,9 @@ def main(unused_argv):
           tf.logging.info('Skipping %s', image_paths[i])
           continue
         
-        try:
+        #try:
             # Extract and save features.
-            (locations_out, descriptors_out, feature_scales_out,
+        (locations_out, descriptors_out, feature_scales_out,
              attention_out) = sess.run(
                  [locations, descriptors, feature_scales, attention],
                  feed_dict={
@@ -151,9 +151,10 @@ def main(unused_argv):
                      input_max_feature_num:
                          config.delf_local_config.max_feature_num
                  })
-        except:
-            tf.logging.info('ERROR: Skipping %s', image_paths[i])
-            continue
+
+#       except:
+#            tf.logging.info('ERROR: Skipping %s', image_paths[i])
+#            continue
         
         
 
