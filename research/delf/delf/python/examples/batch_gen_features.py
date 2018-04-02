@@ -11,17 +11,17 @@ des_test_features = os.path.join('.','test_features')
 
 gen_list = 'batch_list_images.txt'
 
-for path in [des_train_features,des_test_features]:
+'''for path in [des_train_features,des_test_features]:
     if os.path.exists(path):
        shutil.rmtree(path)
-    os.makedirs(path)
+    os.makedirs(path)'''
 
 def batch_gen_features(image_list,src_path,des_path):
     with open(gen_list,'w') as file:
         for image in image_list:
             file.write(os.path.join(src_path, image)+'\n')
     p = Popen('''
-    python extract_features.py \
+    python3 extract_features.py \
   --config_path delf_config_example.pbtxt \
   --list_images_path %s\
   --output_dir %s
@@ -29,8 +29,8 @@ def batch_gen_features(image_list,src_path,des_path):
 
     stdout, stderr = p.communicate()
 
-    print(stdout)
-    print(stderr)
+    print(str(stdout))
+    print(str(stderr))
 
 train_images = os.listdir(train_images_path)
 test_images = os.listdir(test_images_path)

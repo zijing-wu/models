@@ -85,7 +85,8 @@ def main(unused_argv):
     _, value = reader.read(filename_queue)
     image_tf = tf.image.decode_jpeg(value, channels=3)
 
-    with tf.Session() as sess:
+    gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.7)
+    with tf.Session(config=tf.ConfigProto(gpu_options=gpu_options)) as sess:
       # Initialize variables.
       init_op = tf.global_variables_initializer()
       sess.run(init_op)
