@@ -11,10 +11,10 @@ if os.path.exists(res_path):
    shutil.rmtree(res_path)
 os.makedirs(res_path)
 
-train_image_path = os.path.join('..','examples','data','cv_images','train')
-test_image_path = os.path.join('..','examples','data','cv_images','test')
-train_feature_path = os.path.join('..','examples','data','cv_features','train')
-test_feature_path = os.path.join('..','examples','data','cv_features','test')
+train_image_path = os.path.join('..','examples','data_retrieval','train')
+test_image_path = os.path.join('..','examples','data_retrieval','test')
+train_feature_path = os.path.join('..','examples','train_features')
+test_feature_path = os.path.join('..','examples','test_features')
 
 train_size = len(os.listdir(train_image_path))
 
