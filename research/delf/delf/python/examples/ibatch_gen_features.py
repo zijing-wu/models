@@ -3,6 +3,9 @@ from subprocess import PIPE, Popen
 
 def batch_gen_features(image_list,src_path,des_path,id):
     gen_list = str(id)+'_batch_list_images.txt'
+    log_file = 'gpu'+str(id)+'.log'
+    log = open(log_file, 'a')  # so that data written to it will be appended
+    
     with open(gen_list,'w') as file:
         for image in image_list:
             file.write(os.path.join(src_path, image)+'\n')
@@ -11,12 +14,11 @@ def batch_gen_features(image_list,src_path,des_path,id):
             --config_path delf_config_example.pbtxt \
             --list_images_path %s\
             --output_dir %s
-            '''%(gen_list,des_path),shell=True, stdout=PIPE, stderr=PIPE)
+            '''%(gen_list,des_path),shell=True, stdout=log, stderr=log)
         
-        stdout, stderr = p.communicate()
-        
-        print(str(stdout))
-        print(str(stderr))
+        #stdout, stderr = p.communicate()
+        #print(str(stdout))
+        #print(str(stderr))
 
 def main():
     if len(sys.argv) != 7:
@@ -35,6 +37,7 @@ def main():
 
     for s in range(I_START,I_END,FILE_PER_BATCH):
         s_end = min(I_END, s+FILE_PER_BATCH)
+        print("[%d]processing...(%d-%d)/(%d-%d)"%(ID, s, s_end, I_START, I_END))
         batch_gen_features(images[s:s_end],images_path,des_features,ID)
 
 if __name__ == '__main__':
