@@ -16,7 +16,7 @@ def batch_gen_features(image_list,src_path,des_path,id):
         stdout, stderr = p.communicate()
         
         print(str(stdout))
-    print(str(stderr))
+        print(str(stderr))
 
 def main():
     if len(sys.argv) != 7:
