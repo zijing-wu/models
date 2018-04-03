@@ -1,6 +1,6 @@
 import os
 
-FILE_PER_BATCH = 1
+FILE_PER_BATCH = 10
 
 train_images_path = os.path.join('.','data_retrieval','train')
 test_images_path = os.path.join('.','data_retrieval','test')

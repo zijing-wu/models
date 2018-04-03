@@ -5,7 +5,7 @@ from itertools import product
 from time import sleep
 
 PROCESS_NUMBER = 2
-FILE_PER_BATCH = 1
+FILE_PER_BATCH = 10
 
 train_images_path = os.path.join('.','data_retrieval','train')
 test_images_path = os.path.join('.','data_retrieval','test')
@@ -31,7 +31,7 @@ def batch_gen_features(index,is_train):
     print("Process image in %s"%(gen_path,))
 
     p = Popen('''
-    python extract_features.py \
+    python3 extract_features.py \
   --config_path delf_config_example.pbtxt \
   --list_images_path %s\
   --output_dir %s
