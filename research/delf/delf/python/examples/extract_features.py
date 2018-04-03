@@ -139,7 +139,7 @@ def main(unused_argv):
         
         try:
             # Extract and save features.
-        (locations_out, descriptors_out, feature_scales_out,
+            (locations_out, descriptors_out, feature_scales_out,
              attention_out) = sess.run(
                  [locations, descriptors, feature_scales, attention],
                  feed_dict={
