@@ -152,8 +152,7 @@ def main(unused_argv):
                      input_max_feature_num:
                          config.delf_local_config.max_feature_num
                  })
-
-       except:
+        except:
             tf.logging.info('ERROR: Skipping %s', image_paths[i])
             continue
         
