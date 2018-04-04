@@ -66,7 +66,7 @@ def main(unused_argv):
   tf.logging.info('Reading list of images...')
   image_paths = _ReadImageList(cmd_args.list_images_path)
   num_images = len(image_paths)
-  tf.logging.info('done! Found %d images', num_images)
+  tf.logging.info('one! Found %d images', num_images)
 
   # Parse DelfConfig proto.
   config = delf_config_pb2.DelfConfig()
@@ -83,7 +83,7 @@ def main(unused_argv):
     filename_queue = tf.train.string_input_producer(image_paths, shuffle=False)
     reader = tf.WholeFileReader()
     _, value = reader.read(filename_queue)
-    image_tf = tf.image.decode_jpeg(value, channels=3)
+    image_tf = tf.image.decode_jpeg(value,ratio = 2, channels=3)
 
     gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.7)
     with tf.Session(config=tf.ConfigProto(gpu_options=gpu_options)) as sess:
