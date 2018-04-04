@@ -65,8 +65,12 @@ def extract_features(dir_name):
         basename = os.path.basename(cur_features_file)
         basename = os.path.splitext(basename)[0]
         #basename = os.path.splitext(cur_features_file)[0]
-        locations_1, _, descriptors_1, _, _ = feature_io.ReadFromFile(
-            cur_features_file)
+        try:
+            locations_1, _, descriptors_1, _, _ = feature_io.ReadFromFile(
+                cur_features_file)
+        except:
+            print("get error, skip...[%s]"%(cur_features_file))
+            continue
         dict_features_index[basename] = {"loc": locations_1, "des": descriptors_1}
     tf.logging.info("loading features done.")
     return dict_features_index
