@@ -59,6 +59,8 @@ def extract_features(dir_name):
     files = [f for f in os.listdir(dir_name) if isfile(join(dir_name, f))]
     dict_features_index = {}
     for i in range(len(files)):
+        if(i>1000): break
+
         if(i % 100 == 0):
             tf.logging.info("loading features...(%d/%d)"%(i,len(files)))
         cur_features_file = dir_name + '/' + files[i]
@@ -113,13 +115,18 @@ def main():
                                           for i in range(num_features_2)
                                           if indices[i] != num_features_1
                                           ])
-            _, inliers = ransac(
+            try:
+                _, inliers = ransac(
                 (locations_1_to_use, locations_2_to_use),
                 AffineTransform,
                 min_samples=3,
                 residual_threshold=20,
                 max_trials=1000)
+            except:
+                print("error, skip...[%s-%s]"%(query_id, index_id))
+                continue
             if(inliers is None or query_id==index_id):
+                print("inliners is none, skip...[%s-%s]"%(query_id, index_id))
                 continue
             inliers_sum = sum(inliers)
             tf.logging.info('%s-%s: found %d inliers' % (query_id, index_id, inliers_sum))
