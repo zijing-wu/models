@@ -90,7 +90,7 @@ def main():
 
     for s in range(test_start, test_end, batch_size):
         s_end = min(min(test_end, s + batch_size),len(test_files))
-        print("processing...(%d-%d)/(%d-%d)" % (s, s_end, test_start, test_end))
+        tf.logging.info("processing...(%d-%d)/(%d-%d)" % (s, s_end, test_start, test_end))
         dict_features_test = extract_features(test_dir_name, test_files, s, s_end)
 
         for test_id in dict_features_test:  # 1
@@ -103,7 +103,7 @@ def main():
 
             for t in range(0, len(train_files), batch_size):
                 t_end = min(min(test_end, t + batch_size),len(train_files))
-                print("   train processing...(%d-%d)/%d" % (t, t_end, len(train_files)))
+                tf.logging.info("   train processing...(%d-%d)/%d" % (t, t_end, len(train_files)))
                 dict_features_train = extract_features(train_dir_name, train_files, t, t_end)
 
                 for train_id in dict_features_train:  # 2
@@ -132,10 +132,10 @@ def main():
                             residual_threshold=20,
                             max_trials=1000)
                     except:
-                        print("error, skip...[%s-%s]" % (train_id, test_id))
+                        tf.logging.info("error, skip...[%s-%s]" % (train_id, test_id))
                         continue
                     if (inliers is None or train_id == test_id):
-                        print("inliners is none, skip...[%s-%s]" % (train_id, test_id))
+                        tf.logging.info("inliners is none, skip...[%s-%s]" % (train_id, test_id))
                         continue
                     inliers_sum = sum(inliers)
                     #tf.logging.info('%s-%s: found %d inliers' % (query_id, index_id, inliers_sum))
