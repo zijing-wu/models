@@ -26,6 +26,7 @@ from __future__ import print_function
 
 import argparse
 import sys
+import csv
 
 import numpy as np
 from scipy.spatial import cKDTree
@@ -110,14 +111,27 @@ def idx2label(idx, label_arr, idx_arr):
 
 _INLIERS_THRESHOLD = 150
 def main():
-    if len(sys.argv) != 5:
-        print('Syntax: {} <train_dir/> <test_dir/> <batch_size> <out_dir/>'.format(sys.argv[0]))
+    if len(sys.argv) != 6:
+        print('Syntax: {} <train_file_list> <train_dir/> <test_dir/> <batch_size> <out_dir/>'.format(sys.argv[0]))
         sys.exit(0)
-    (train_dir, test_dir, train_batch_size, out_dir) = sys.argv[1:]
+    (train_file_list, train_dir, test_dir, train_batch_size, out_dir) = sys.argv[1:]
     #(train_dir, test_dir, train_batch_size, out_dir) = ('ox_train_features/','ox_train_features/',1000,'lines_out')
     #test_start=int(test_start)
     #test_end=int(test_end)
     #test_batch_size=int(test_batch_size)
+
+    with open(train_file_list) as f:
+        train_file_lines = f.readlines()
+    lines = [line.rstrip('\n') for line in open(train_file_list)]
+
+    reader = csv.reader(open(train_file_list, 'r'), delimiter=',')
+    train_files=[]
+    for row in reader:
+        train_id = row[0]
+        #class_label = row[1]
+        cur_path = "%s/%s.jpg"%(train_dir, train_id)
+        train_files.append(cur_path)
+
     train_batch_size = int(train_batch_size)
     if not os.path.exists(out_dir):
         os.makedirs(out_dir)
