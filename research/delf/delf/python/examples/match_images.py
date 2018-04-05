@@ -85,21 +85,21 @@ def main(unused_argv):
   tf.logging.info('Found %d inliers' % sum(inliers))
 
   # Visualize correspondences, and save to file.
-  _, ax = plt.subplots()
-  img_1 = mpimg.imread(cmd_args.image_1_path)
-  img_2 = mpimg.imread(cmd_args.image_2_path)
-  inlier_idxs = np.nonzero(inliers)[0]
-  plot_matches(
-      ax,
-      img_1,
-      img_2,
-      locations_1_to_use,
-      locations_2_to_use,
-      np.column_stack((inlier_idxs, inlier_idxs)),
-      matches_color='b')
-  ax.axis('off')
-  ax.set_title('DELF correspondences')
-  plt.savefig(cmd_args.output_image)
+#  _, ax = plt.subplots()
+#  img_1 = mpimg.imread(cmd_args.image_1_path)
+#  img_2 = mpimg.imread(cmd_args.image_2_path)
+#  inlier_idxs = np.nonzero(inliers)[0]
+#  plot_matches(
+#      ax,
+#      img_1,
+#      img_2,
+#      locations_1_to_use,
+#      locations_2_to_use,
+#      np.column_stack((inlier_idxs, inlier_idxs)),
+#      matches_color='b')
+#  ax.axis('off')
+#  ax.set_title('DELF correspondences')
+#  plt.savefig(cmd_args.output_image)
 
 
 if __name__ == '__main__':

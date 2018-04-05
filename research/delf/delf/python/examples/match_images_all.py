@@ -51,27 +51,19 @@ PLOT_FIG = False
 #QUERY_FEATURE_FOLDER = 'data/oxford5k_features'
 #OUT_PUT_FILE = 'out.csv'
 
-def extract_features(dir_name):
-    #files = os.listdir(dir_name)
-    #os.chdir(dir_name)
-    #files = glob.glob("*.delf")
-    dir_name = os.path.abspath(dir_name)
-    files = [f for f in os.listdir(dir_name) if isfile(join(dir_name, f))]
+def extract_features(dir_name, files, i_start, i_end):
     dict_features_index = {}
-    for i in range(len(files)):
-        if(i>1000): break
-
+    for i in range(i_start, i_end):
         if(i % 100 == 0):
-            tf.logging.info("loading features...(%d/%d)"%(i,len(files)))
+            tf.logging.info("loading features...(%d/%d)"%(i,i_end-i_start))
         cur_features_file = dir_name + '/' + files[i]
         basename = os.path.basename(cur_features_file)
         basename = os.path.splitext(basename)[0]
-        #basename = os.path.splitext(cur_features_file)[0]
         try:
             locations_1, _, descriptors_1, _, _ = feature_io.ReadFromFile(
                 cur_features_file)
         except:
-            print("get error, skip...[%s]"%(cur_features_file))
+            print("load feature get error, skip...[%s]"%(cur_features_file))
             continue
         dict_features_index[basename] = {"loc": locations_1, "des": descriptors_1}
     tf.logging.info("loading features done.")
@@ -79,66 +71,81 @@ def extract_features(dir_name):
 
 _INLIERS_THRESHOLD = 30
 def main():
-    if len(sys.argv) != 4:
-        print('Syntax: {} <index_dir/> <test_dir/> <out.csv>'.format(sys.argv[0]))
+    if len(sys.argv) != 7:
+        print('Syntax: {} <train_dir/> <test_dir/> <test_start> <test_end> <batch_size> <out_dir/>'.format(sys.argv[0]))
         sys.exit(0)
-    (INDEX_FEATURE_FOLDER, QUERY_FEATURE_FOLDER, OUT_PUT_FILE) = sys.argv[1:]
+    (train_dir, test_dir, test_start, test_end, batch_size, out_dir) = sys.argv[1:]
+    test_start=int(test_start)
+    test_end=int(test_end)
+    batch_size=int(batch_size)
+    if not os.path.exists(out_dir):
+        os.makedirs(out_dir)
 
     tf.logging.set_verbosity(tf.logging.INFO)
 
-    dict_features_index = extract_features(INDEX_FEATURE_FOLDER)
-    dict_features_query = extract_features(QUERY_FEATURE_FOLDER)
+    train_dir_name = os.path.abspath(train_dir)
+    train_files = [f for f in os.listdir(train_dir_name) if isfile(join(train_dir_name, f))]
+    test_dir_name = os.path.abspath(test_dir)
+    test_files = [f for f in os.listdir(test_dir_name) if isfile(join(test_dir_name, f))]
 
-    output={}
-    for query_id in dict_features_query: #1
-        output[query_id] = []
-        query_feature = dict_features_query[query_id]
-        locations_1 = query_feature['loc']
-        descriptors_1 = query_feature['des']
-        d1_tree = cKDTree(descriptors_1)
-        num_features_1 = locations_1.shape[0]
-        for index_id in dict_features_index: #2
-            index_feature = dict_features_index[index_id]
-            locations_2 = index_feature['loc']
-            descriptors_2 = index_feature['des']
-            num_features_2 = locations_2.shape[0]
-            _, indices = d1_tree.query(
-                descriptors_2, distance_upper_bound=_DISTANCE_THRESHOLD)
+    for s in range(test_start, test_end, batch_size):
+        s_end = min(min(test_end, s + batch_size),len(test_files))
+        tf.logging.info("processing...(%d-%d)/(%d-%d)" % (s, s_end, test_start, test_end))
+        dict_features_test = extract_features(test_dir_name, test_files, s, s_end)
 
-            locations_2_to_use = np.array([
-                                          locations_2[i,]
-                                          for i in range(num_features_2)
-                                          if indices[i] != num_features_1
-                                          ])
-            locations_1_to_use = np.array([
-                                          locations_1[indices[i],]
-                                          for i in range(num_features_2)
-                                          if indices[i] != num_features_1
-                                          ])
-            try:
-                _, inliers = ransac(
-                (locations_1_to_use, locations_2_to_use),
-                AffineTransform,
-                min_samples=3,
-                residual_threshold=20,
-                max_trials=1000)
-            except:
-                print("error, skip...[%s-%s]"%(query_id, index_id))
-                continue
-            if(inliers is None or query_id==index_id):
-                print("inliners is none, skip...[%s-%s]"%(query_id, index_id))
-                continue
-            inliers_sum = sum(inliers)
-            tf.logging.info('%s-%s: found %d inliers' % (query_id, index_id, inliers_sum))
-            if(inliers_sum > _INLIERS_THRESHOLD):
-                output[query_id].append(index_id)
+        for test_id in dict_features_test:  # 1
+            cur_out = []
+            test_feature = dict_features_test[test_id]
+            locations_1 = test_feature['loc']
+            descriptors_1 = test_feature['des']
+            d1_tree = cKDTree(descriptors_1)
+            num_features_1 = locations_1.shape[0]
 
+            for t in range(0, len(train_files), batch_size):
+                t_end = min(min(test_end, t + batch_size),len(train_files))
+                tf.logging.info("   train processing...(%d-%d)/%d" % (t, t_end, len(train_files)))
+                dict_features_train = extract_features(train_dir_name, train_files, t, t_end)
 
-    with open(OUT_PUT_FILE, 'w') as the_file:
-        for query_id in output:
-            index_list = output[query_id]
-            row = ' '.join(index_list)
-            the_file.write("%s,%s\n"% (query_id, row))
+                for train_id in dict_features_train:  # 2
+                    train_feature = dict_features_train[train_id]
+                    locations_2 = train_feature['loc']
+                    descriptors_2 = train_feature['des']
+                    num_features_2 = locations_2.shape[0]
+                    _, indices = d1_tree.query(
+                        descriptors_2, distance_upper_bound=_DISTANCE_THRESHOLD)
+
+                    locations_2_to_use = np.array([
+                                                      locations_2[i,]
+                                                      for i in range(num_features_2)
+                                                      if indices[i] != num_features_1
+                                                      ])
+                    locations_1_to_use = np.array([
+                                                      locations_1[indices[i],]
+                                                      for i in range(num_features_2)
+                                                      if indices[i] != num_features_1
+                                                      ])
+                    try:
+                        _, inliers = ransac(
+                            (locations_1_to_use, locations_2_to_use),
+                            AffineTransform,
+                            min_samples=3,
+                            residual_threshold=20,
+                            max_trials=1000)
+                    except:
+                        tf.logging.info("error, skip...[%s-%s]" % (train_id, test_id))
+                        continue
+                    if (inliers is None or train_id == test_id):
+                        tf.logging.info("inliners is none, skip...[%s-%s]" % (train_id, test_id))
+                        continue
+                    inliers_sum = sum(inliers)
+                    #tf.logging.info('%s-%s: found %d inliers' % (query_id, index_id, inliers_sum))
+                    if (inliers_sum > _INLIERS_THRESHOLD):
+                        cur_out.append((train_id, inliers_sum))
+
+            out_file_path = out_dir + "/" + test_id + ".txt"
+            with open(out_file_path, 'w') as the_file:
+                for (train_id, inliers_sum) in cur_out:
+                    the_file.write("%s,%s\n"% (train_id, inliers_sum))
 
 if __name__ == '__main__':
     main()

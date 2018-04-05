@@ -4,13 +4,11 @@ from multiprocessing import Pool, Queue, Process, Manager
 from itertools import product
 from time import sleep
 
-train_image_path = os.path.join('..','examples','data_retrieval','train')
-test_image_path = os.path.join('..','examples','data_retrieval','test')
-train_feature_path = os.path.join('..','examples','train_features')
-test_feature_path = os.path.join('..','examples','test_features')
+train_feature_path = os.path.join('..','examples','train_features_ds2')
+test_feature_path = os.path.join('..','examples','test_features_ds2')
 
 line_pattern = re.compile('Found (\d{1,10}) inliers')
-name_pattern = re.compile('(.*?)\.jpg')
+name_pattern = re.compile('(.*?)\.delf')
 
 train_file,test_file = os.listdir(train_feature_path),os.listdir(test_feature_path)
 
@@ -31,17 +29,17 @@ def excute(test_file,train_file):
     train_feature = os.path.join(train_feature_path,train+'.delf')
     test_feature = os.path.join(test_feature_path,test+'.delf')
 
-    p = Popen('''python match_images.py \
+    p = Popen('''python3 match_images.py \
   --features_1_path %s \
   --features_2_path %s '''%(train_feature,test_feature),shell=True, stdout=PIPE, stderr=PIPE)
 
     stdout, stderr = p.communicate()
 
     print("%s and %s finish"%(train,test))
-    print(str(stderr))
-
+    print(stdout)
+    print(stderr)
     res = line_pattern.findall(str(stderr))
-
+    print(res)
     os.chdir('../analyze')
     if len(res) == 1 :
         return res[0]
@@ -59,5 +57,5 @@ for i in range(int(argv[0]),int(argv[1])):
     with open(os.path.join(des_file,des_f+'.txt'),'w') as file:
         for t_file in train_file:
             res = excute(test_file[i],t_file)
-            if res >= 16:
+            if int(res) >= 16:
                 file.write(t_file[0:-5]+','+str(res)+'\n')
