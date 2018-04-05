@@ -68,7 +68,7 @@ def extract_features(dir_name, files, i_start, i_end):
     return dict_features_index
 
 def extract_features_aggregate(dir_name, files, i_start, i_end):
-    descriptors = None
+    descriptors = []
     label_arr=[]
     idx_arr=[]
     cur_idx=0
@@ -98,7 +98,6 @@ def extract_features_aggregate(dir_name, files, i_start, i_end):
         idx_arr.append(cur_idx)
         label_arr.append(basename)
         n+=1
-
     print("loading features done. size:%d,%d" % (descriptors.shape[0], descriptors.shape[1]))
     return descriptors,label_arr,idx_arr
 
