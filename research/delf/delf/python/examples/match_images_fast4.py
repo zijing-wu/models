@@ -74,15 +74,14 @@ def extract_features_aggregate(dir_name, files, i_start, i_end):
     cur_idx=0
     n=0
     for i in range(i_start, i_end):
-        if(i>1000): break
+        if(i>700): break
         if(i % 100 == 0):
             print("loading features...(%d/%d)"%(i,i_end-i_start))
         cur_features_file = dir_name + '/' + files[i]
         basename = os.path.basename(cur_features_file)
         basename = os.path.splitext(basename)[0]
         try:
-            _, _, descriptors_1, _, _ = feature_io.ReadFromFile(
-                cur_features_file)
+            _, _, descriptors_1, _, _ = feature_io.ReadFromFile(cur_features_file)
         except:
             print("load feature get error, skip...[%s]"%(cur_features_file))
             continue
@@ -98,6 +97,8 @@ def extract_features_aggregate(dir_name, files, i_start, i_end):
         idx_arr.append(cur_idx)
         label_arr.append(basename)
         n+=1
+    if(descriptors is None): return None,[],[]
+
     print("loading features done. size:%d,%d" % (descriptors.shape[0], descriptors.shape[1]))
     return descriptors,label_arr,idx_arr
 
@@ -116,7 +117,7 @@ def main():
         print('Syntax: {} <train_file_list> <train_dir/> <test_dir/> <batch_size> <out_dir/>'.format(sys.argv[0]))
         sys.exit(0)
     (train_file_list, train_dir, test_dir, train_batch_size, out_dir) = sys.argv[1:]
-    (train_dir, test_dir, train_batch_size, out_dir) = ('ox_train_features/','ox_train_features/',1000,'lines_out')
+    #(train_dir, test_dir, train_batch_size, out_dir) = ('ox_train_features/','ox_train_features/',1000,'lines_out')
     #test_start=int(test_start)
     #test_end=int(test_end)
     #test_batch_size=int(test_batch_size)
@@ -132,7 +133,7 @@ def main():
     for row in reader:
         train_id = row[0]
         #class_label = row[1]
-        cur_path = "%s/%s.jpg"%(train_dir, train_id)
+        cur_path = "%s.delf"%(train_id)
         train_files.append(cur_path)
 
 
@@ -157,12 +158,12 @@ def main():
     for t in range(0, len(train_files), train_batch_size):
         t_end = min(t + train_batch_size, len(train_files))
         descriptors_list_train, label_arr_train, idx_arr_train = extract_features_aggregate(train_dir_name, train_files, t, t_end)
-        dk_tree_train = cKDTree(descriptors_list_train, leafsize=50)
+        dk_tree_train = cKDTree(descriptors_list_train, leafsize=100000000)
 
         print("query size:%d,%d" % (descriptors_query_test.shape[0], descriptors_query_test.shape[1]))
         t0 = datetime.datetime.now()
         _, indices = dk_tree_train.query(
-            descriptors_query_test, distance_upper_bound=_DISTANCE_THRESHOLD, n_jobs=48)
+            descriptors_query_test, distance_upper_bound=_DISTANCE_THRESHOLD, n_jobs=196)
         print("query time:")
         print(datetime.datetime.now() - t0)
 
