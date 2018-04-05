@@ -74,7 +74,7 @@ def extract_features_aggregate(dir_name, files, i_start, i_end):
     cur_idx=0
     n=0
     for i in range(i_start, i_end):
-        if(i>700): break
+        #if(i>100): break
         if(i % 100 == 0):
             print("loading features...(%d/%d)"%(i,i_end-i_start))
         cur_features_file = dir_name + '/' + files[i]
@@ -153,7 +153,7 @@ def main():
     #total_N = test_N*train_N
 
 
-    descriptors_query_test, label_arr_test, idx_arr_test = extract_features_aggregate(test_dir_name, test_files, 0, len(test_files))
+    descriptors_query_test, label_arr_test, idx_arr_test = extract_features_aggregate(test_dir_name, test_files, 0, 100)
 
     for t in range(0, len(train_files), train_batch_size):
         t_end = min(t + train_batch_size, len(train_files))
@@ -163,14 +163,15 @@ def main():
         print("query size:%d,%d" % (descriptors_query_test.shape[0], descriptors_query_test.shape[1]))
         t0 = datetime.datetime.now()
         _, indices = dk_tree_train.query(
-            descriptors_query_test, distance_upper_bound=_DISTANCE_THRESHOLD, n_jobs=196)
+            descriptors_query_test, p=1, distance_upper_bound=_DISTANCE_THRESHOLD, n_jobs=196)
+
         print("query time:")
         print(datetime.datetime.now() - t0)
 
         start_j=0
         prev_end_j=0
         for i in range(len(idx_arr_test)):
-            test_id = label_arr_train[i]
+            test_id = label_arr_test[i]
             end_j = idx_arr_test[i]
             cur_lines={}
             #print(indices[start_j:end_j])
