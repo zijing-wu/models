@@ -68,7 +68,7 @@ def extract_features(dir_name, files, i_start, i_end):
     return dict_features_index
 
 def extract_features_aggregate(dir_name, files, i_start, i_end):
-    descriptors = []
+    descriptors = None
     label_arr=[]
     idx_arr=[]
     cur_idx=0
@@ -116,22 +116,25 @@ def main():
         print('Syntax: {} <train_file_list> <train_dir/> <test_dir/> <batch_size> <out_dir/>'.format(sys.argv[0]))
         sys.exit(0)
     (train_file_list, train_dir, test_dir, train_batch_size, out_dir) = sys.argv[1:]
-    #(train_dir, test_dir, train_batch_size, out_dir) = ('ox_train_features/','ox_train_features/',1000,'lines_out')
+    (train_dir, test_dir, train_batch_size, out_dir) = ('ox_train_features/','ox_train_features/',1000,'lines_out')
     #test_start=int(test_start)
     #test_end=int(test_end)
     #test_batch_size=int(test_batch_size)
 
+
     with open(train_file_list) as f:
         train_file_lines = f.readlines()
-    lines = [line.rstrip('\n') for line in open(train_file_list)]
+    lines = [line.rstrip("\n") for line in open(train_file_list)]
 
-    reader = csv.reader(open(train_file_list, 'r'), delimiter=',')
+    reader = csv.reader(open(train_file_list, "r"), delimiter=",")
+
     train_files=[]
     for row in reader:
         train_id = row[0]
         #class_label = row[1]
         cur_path = "%s/%s.jpg"%(train_dir, train_id)
         train_files.append(cur_path)
+
 
     train_batch_size = int(train_batch_size)
     if not os.path.exists(out_dir):
@@ -140,14 +143,14 @@ def main():
     tf.logging.set_verbosity(tf.logging.INFO)
 
     train_dir_name = os.path.abspath(train_dir)
-    train_files = [f for f in os.listdir(train_dir_name) if isfile(join(train_dir_name, f))]
+    #train_files = [f for f in os.listdir(train_dir_name) if isfile(join(train_dir_name, f))]
     test_dir_name = os.path.abspath(test_dir)
     test_files = [f for f in os.listdir(test_dir_name) if isfile(join(test_dir_name, f))]
 
     #test_N = test_end-test_start
     #train_N = len(train_files)
     #total_N = test_N*train_N
-    t0 = time.time()
+
 
     descriptors_query_test, label_arr_test, idx_arr_test = extract_features_aggregate(test_dir_name, test_files, 0, len(test_files))
 
@@ -157,8 +160,11 @@ def main():
         dk_tree_train = cKDTree(descriptors_list_train, leafsize=50)
 
         print("query size:%d,%d" % (descriptors_query_test.shape[0], descriptors_query_test.shape[1]))
+        t0 = datetime.datetime.now()
         _, indices = dk_tree_train.query(
             descriptors_query_test, distance_upper_bound=_DISTANCE_THRESHOLD, n_jobs=48)
+        print("query time:")
+        print(datetime.datetime.now() - t0)
 
         start_j=0
         prev_end_j=0
