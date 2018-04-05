@@ -12,7 +12,7 @@ test_feature_path = os.path.join('..','examples','test_features')
 line_pattern = re.compile('Found (\d{1,10}) inliers')
 name_pattern = re.compile('(.*?)\.jpg')
 
-train_file,test_file = os.listdir(train_image_path),os.listdir(test_image_path)
+train_file,test_file = os.listdir(train_feature_path),os.listdir(test_feature_path)
 
 if not os.path.exists("lines"):
     os.mkdir("lines")
@@ -53,12 +53,11 @@ argv = sys.argv[1:]
 for i in range(int(argv[0]),int(argv[1])):
     if i >= len(test_file):
         break
-    des_f = test_file[i][0:-4]
-    print(des_f)
+    des_f = test_file[i][0:-5]
     if os.path.exists(os.path.join(des_file,des_f+'.txt')):
         continue
     with open(os.path.join(des_file,des_f+'.txt'),'w') as file:
         for t_file in train_file:
             res = excute(test_file[i],t_file)
             if res >= 16:
-                file.write(t_file[0:-4]+','+str(res)+'\n')
+                file.write(t_file[0:-5]+','+str(res)+'\n')
