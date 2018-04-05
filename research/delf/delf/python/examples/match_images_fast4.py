@@ -110,11 +110,11 @@ def idx2label(idx, label_arr, idx_arr):
 
 _INLIERS_THRESHOLD = 150
 def main():
-    #if len(sys.argv) != 7:
-    #    print('Syntax: {} <train_dir/> <test_dir/> <test_start> <test_end> <batch_size> <out_dir/>'.format(sys.argv[0]))
-    #    sys.exit(0)
-    #(train_dir, test_dir, test_start, test_end, batch_size, out_dir) = sys.argv[1:]
-    (train_dir, test_dir, train_batch_size, out_dir) = ('ox_train_features/','ox_train_features/',100,'lines_out')
+    if len(sys.argv) != 5:
+        print('Syntax: {} <train_dir/> <test_dir/> <batch_size> <out_dir/>'.format(sys.argv[0]))
+        sys.exit(0)
+    (train_dir, test_dir, train_batch_size, out_dir) = sys.argv[1:]
+    #(train_dir, test_dir, train_batch_size, out_dir) = ('ox_train_features/','ox_train_features/',1000,'lines_out')
     #test_start=int(test_start)
     #test_end=int(test_end)
     #test_batch_size=int(test_batch_size)
@@ -141,18 +141,30 @@ def main():
         descriptors_list_train, label_arr_train, idx_arr_train = extract_features_aggregate(train_dir_name, train_files, t, t_end)
         dk_tree_train = cKDTree(descriptors_list_train, leafsize=50)
 
+        print("query size:%d,%d" % (descriptors_query_test.shape[0], descriptors_query_test.shape[1]))
         _, indices = dk_tree_train.query(
             descriptors_query_test, distance_upper_bound=_DISTANCE_THRESHOLD)
 
         start_j=0
+        prev_end_j=0
         for i in range(len(idx_arr_test)):
             test_id = label_arr_train[i]
             end_j = idx_arr_test[i]
             cur_lines={}
+            #print(indices[start_j:end_j])
+            skip_num=0
             for j in range(start_j, end_j): # for each feature j in test i
                 if indices[j] != dk_tree_train.n:
                     train_id = idx2label(indices[j], label_arr_train, idx_arr_train)
-                    cur_lines[train_id]=cur_lines.get(train_id, 0) + 1
+                    if train_id not in cur_lines:
+                        cur_lines[train_id]=0
+                    cur_lines[train_id] += 1
+                else:
+                    skip_num+=1
+            #print("size:%d; skip:%d\n"%(len(cur_lines),skip_num))
+
+            start_j += (end_j-prev_end_j)
+            prev_end_j=end_j
 
             out_file_path = out_dir + "/" + test_id + ".txt"
             with open(out_file_path, 'w') as the_file:
