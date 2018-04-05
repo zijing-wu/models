@@ -51,6 +51,7 @@ PLOT_FIG = False
 def extract_features(dir_name, files, i_start, i_end):
     dict_features_index = {}
     for i in range(i_start, i_end):
+        if(i>2000): break
         if(i % 100 == 0):
             print("loading features...(%d/%d)"%(i,i_end-i_start))
         cur_features_file = dir_name + '/' + files[i]
@@ -73,6 +74,7 @@ def extract_features_aggregate(dir_name, files, i_start, i_end):
     cur_idx=0
     n=0
     for i in range(i_start, i_end):
+        if(i>1000): break
         if(i % 100 == 0):
             print("loading features...(%d/%d)"%(i,i_end-i_start))
         cur_features_file = dir_name + '/' + files[i]
@@ -157,7 +159,7 @@ def main():
 
         print("query size:%d,%d" % (descriptors_query_test.shape[0], descriptors_query_test.shape[1]))
         _, indices = dk_tree_train.query(
-            descriptors_query_test, distance_upper_bound=_DISTANCE_THRESHOLD)
+            descriptors_query_test, distance_upper_bound=_DISTANCE_THRESHOLD, n_jobs=48)
 
         start_j=0
         prev_end_j=0
