@@ -35,6 +35,8 @@ from delf import delf_config_pb2
 from delf import feature_extractor
 from delf import feature_io
 
+import datetime
+
 cmd_args = None
 
 # Extension of feature files.
@@ -60,6 +62,7 @@ def _ReadImageList(list_path):
 
 
 def main(unused_argv):
+
   tf.logging.set_verbosity(tf.logging.INFO)
 
   # Read list of images.
@@ -83,7 +86,7 @@ def main(unused_argv):
     filename_queue = tf.train.string_input_producer(image_paths, shuffle=False)
     reader = tf.WholeFileReader()
     _, value = reader.read(filename_queue)
-    image_tf = tf.image.decode_jpeg(value,ratio = 2, channels=3)
+    image_tf = tf.image.decode_jpeg(value,ratio = 8, channels=3)
 
     gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.7)
     with tf.Session(config=tf.ConfigProto(gpu_options=gpu_options)) as sess:
@@ -111,6 +114,7 @@ def main(unused_argv):
           boxes, raw_descriptors, config)
 
       # Start input enqueue threads.
+      t0 = datetime.datetime.now()
       coord = tf.train.Coordinator()
       threads = tf.train.start_queue_runners(sess=sess, coord=coord)
       start = time.clock()
@@ -125,10 +129,6 @@ def main(unused_argv):
                           _STATUS_CHECK_ITERATIONS, elapsed)
           start = time.clock()
 
-        # # Get next image.
-        
-        im = sess.run(image_tf)
-
         # If descriptor already exists, skip its computation.
         out_desc_filename = os.path.splitext(os.path.basename(
             image_paths[i]))[0] + _DELF_EXT
@@ -136,7 +136,10 @@ def main(unused_argv):
         if tf.gfile.Exists(out_desc_fullpath):
           tf.logging.info('Skipping %s', image_paths[i])
           continue
-        
+
+        # # Get next image.
+        im = sess.run(image_tf)
+
         try:
             # Extract and save features.
             (locations_out, descriptors_out, feature_scales_out,
@@ -163,6 +166,8 @@ def main(unused_argv):
       # Finalize enqueue threads.
       coord.request_stop()
       coord.join(threads)
+      print("done.")
+      print(datetime.datetime.now() - t0)
 
 
 if __name__ == '__main__':
@@ -193,3 +198,4 @@ if __name__ == '__main__':
       """)
   cmd_args, unparsed = parser.parse_known_args()
   app.run(main=main, argv=[sys.argv[0]] + unparsed)
+
