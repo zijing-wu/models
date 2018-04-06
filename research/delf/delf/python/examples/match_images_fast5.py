@@ -110,7 +110,7 @@ def extract_features_aggregate_mul(dir_name, files, i_start, i_end):
     label_arr_=[]
 
 
-    with Pool(processes=4) as pool:
+    with Pool(processes=176) as pool:
         with Manager() as manager:
             idx_arr = manager.list()
             label_arr = manager.list()
@@ -172,17 +172,12 @@ def extract_features_aggregate(dir_name, files, i_start, i_end):
 
     return descriptors,label_arr,idx_arr
 
-def build_kdtree(descriptors_list):
-    tree=None
-    d1_tree = cKDTree(descriptors_list, leafsize=50)
-    return tree
-
 def idx2label(idx, label_arr, idx_arr):
     idxs = np.searchsorted(idx_arr, idx)
     return label_arr[idxs]
 
 _INLIERS_THRESHOLD = 150
-_DEBUG=True
+_DEBUG=False
 def main():
     PKL_FILE_TRAIN = 'save_train.pkl'
     PKL_FILE_TEST = 'save_test.pkl'
@@ -231,7 +226,7 @@ def main():
 
     if (loadtest == 'n'):
         descriptors_query_test, label_arr_test, idx_arr_test = \
-            extract_features_aggregate_mul(test_dir_name, test_files, 0, len(test_files))
+            extract_features_aggregate_mul(test_dir_name, test_files, 0, 10000)
         print("saving...[%s]" % (PKL_FILE_TEST))
         with open(PKL_FILE_TEST, 'wb') as f:
             pickle.dump([descriptors_query_test, label_arr_test, idx_arr_test], f)
@@ -245,7 +240,7 @@ def main():
     print("query size:%d,%d" % (descriptors_query_test.shape[0], descriptors_query_test.shape[1]))
     t0 = datetime.datetime.now()
     _, indices = dk_tree_train.query(
-        descriptors_query_test, p=2, distance_upper_bound=_DISTANCE_THRESHOLD, n_jobs=1)
+        descriptors_query_test, p=2, distance_upper_bound=_DISTANCE_THRESHOLD, n_jobs=176)
     print("tree leaf size:%d"%(dk_tree_train.n))
     print("query time:")
     print(datetime.datetime.now() - t0)
