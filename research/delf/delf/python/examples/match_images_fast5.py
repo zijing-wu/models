@@ -48,33 +48,12 @@ import pickle
 cmd_args = None
 
 _DISTANCE_THRESHOLD = 0.8
+_LOAD_FILE_PROCESSOR = 176
+_QUERY_PROCESSOR = 176
+_TEST_FILE_NUM_START = 0
+_TEST_FILE_NUM_END = 10000
 
 PLOT_FIG = False
-#INDEX_FEATURE_FOLDER = 'data/oxford5k_features'
-#QUERY_FEATURE_FOLDER = 'data/oxford5k_features'
-#OUT_PUT_FILE = 'out.csv'
-
-
-
-
-def extract_features(dir_name, files, i_start, i_end):
-    dict_features_index = {}
-    for i in range(i_start, i_end):
-        if(i>2000): break
-        if(i % 100 == 0):
-            print("loading features...(%d/%d)"%(i,i_end-i_start))
-        cur_features_file = dir_name + '/' + files[i]
-        basename = os.path.basename(cur_features_file)
-        basename = os.path.splitext(basename)[0]
-        try:
-            locations_1, _, descriptors_1, _, _ = feature_io.ReadFromFile(
-                cur_features_file)
-        except:
-            print("load feature get error, skip...[%s]"%(cur_features_file))
-            continue
-        dict_features_index[basename] = {"loc": locations_1, "des": descriptors_1}
-    print("loading features done. size:%d" % (len(dict_features_index)))
-    return dict_features_index
 
 g_files=[]
 g_dir_name=""
@@ -101,7 +80,7 @@ def f(i, i_start, i_end, descriptors, cur_idx, idx_arr, label_arr, lock):
 
 
 def extract_features_aggregate_mul(dir_name, files, i_start, i_end):
-    global g_files, g_dir_name, g_cur_idx
+    global g_files, g_dir_name, g_cur_idx, _LOAD_FILE_PROCESSER
     g_files = files
     g_dir_name = dir_name
     g_cur_idx = 0
@@ -110,7 +89,7 @@ def extract_features_aggregate_mul(dir_name, files, i_start, i_end):
     label_arr_=[]
 
 
-    with Pool(processes=176) as pool:
+    with Pool(processes=_LOAD_FILE_PROCESSER) as pool:
         with Manager() as manager:
             idx_arr = manager.list()
             label_arr = manager.list()
@@ -176,7 +155,6 @@ def idx2label(idx, label_arr, idx_arr):
     idxs = np.searchsorted(idx_arr, idx)
     return label_arr[idxs]
 
-_INLIERS_THRESHOLD = 150
 _DEBUG=False
 def main():
     PKL_FILE_TRAIN = 'save_train.pkl'
@@ -188,12 +166,12 @@ def main():
         train_dir_name = os.path.abspath(train_dir)
         train_files = [f for f in os.listdir(train_dir_name) if isfile(join(train_dir_name, f))]
     else:
+        '''
         if len(sys.argv) != 7:
             print('Syntax: {} <train_file_list> <train_dir/> <test_dir/> <out_dir/> <load_pkl> <save_pkl>\n\
                   set pkl file to n if load from delf'.format(sys.argv[0]))
             sys.exit(0)
         (train_file_list, train_dir, test_dir, out_dir, loadtrain, loadtest) = sys.argv[1:]
-
         reader = csv.reader(open(train_file_list, "r"), delimiter=",")
 
         train_files=[]
@@ -202,6 +180,15 @@ def main():
             #class_label = row[1]
             cur_path = "%s.delf"%(train_id)
             train_files.append(cur_path)
+        '''
+        if len(sys.argv) != 6:
+            print('Syntax: {} <train_dir/> <test_dir/> <out_dir/> <load_pkl> <save_pkl>\n\
+                          set pkl file to n if load from delf'.format(sys.argv[0]))
+            sys.exit(0)
+        (train_dir, test_dir, out_dir, loadtrain, loadtest) = sys.argv[1:]
+        train_dir_name = os.path.abspath(train_dir)
+        train_files = [f for f in os.listdir(train_dir_name) if isfile(join(train_dir_name, f))]
+
 
     if not os.path.exists(out_dir):
         os.makedirs(out_dir)
@@ -226,7 +213,7 @@ def main():
 
     if (loadtest == 'n'):
         descriptors_query_test, label_arr_test, idx_arr_test = \
-            extract_features_aggregate_mul(test_dir_name, test_files, 0, 10000)
+            extract_features_aggregate_mul(test_dir_name, test_files, _TEST_FILE_NUM_START, _TEST_FILE_NUM_END)
         print("saving...[%s]" % (PKL_FILE_TEST))
         with open(PKL_FILE_TEST, 'wb') as f:
             pickle.dump([descriptors_query_test, label_arr_test, idx_arr_test], f)
@@ -240,7 +227,7 @@ def main():
     print("query size:%d,%d" % (descriptors_query_test.shape[0], descriptors_query_test.shape[1]))
     t0 = datetime.datetime.now()
     _, indices = dk_tree_train.query(
-        descriptors_query_test, p=2, distance_upper_bound=_DISTANCE_THRESHOLD, n_jobs=176)
+        descriptors_query_test, p=2, distance_upper_bound=_DISTANCE_THRESHOLD, n_jobs=_QUERY_PROCESSOR)
     print("tree leaf size:%d"%(dk_tree_train.n))
     print("query time:")
     print(datetime.datetime.now() - t0)
