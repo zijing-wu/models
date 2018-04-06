@@ -47,11 +47,13 @@ import pickle
 
 cmd_args = None
 
+_DEBUG = True
 _DISTANCE_THRESHOLD = 0.8
-_LOAD_FILE_PROCESSOR = 176
-_QUERY_PROCESSOR = 176
+_LOAD_FILE_PROCESSOR = 4
+_QUERY_PROCESSOR = 4
 _TEST_FILE_NUM_START = 0
-_TEST_FILE_NUM_END = 10000
+_TEST_FILE_NUM_END = 100
+_FEATURE_DS = 4
 
 PLOT_FIG = False
 
@@ -67,20 +69,23 @@ def f(i, i_start, i_end, descriptors, cur_idx, idx_arr, label_arr, lock):
     basename = os.path.splitext(basename)[0]
     try:
         _, _, descriptors_1, _, _ = feature_io.ReadFromFile(cur_features_file)
+        #print("descriptors_1 size:%d,%d" % (descriptors_1.shape[0], descriptors_1.shape[1]))
+        descriptors_1_ = descriptors_1[:,0:int(descriptors_1.shape[1]/_FEATURE_DS)]
+        #print("cut descriptors_1 size:%d,%d" % (descriptors_1_.shape[0], descriptors_1_.shape[1]))
     except:
         print("load feature get error, skip...[%s]" % (cur_features_file))
         return
 
     with lock:
         #print("descriptors size:%d"%(len(descriptors)))
-        descriptors.append(descriptors_1)
-        cur_idx.value += descriptors_1.shape[0]
+        descriptors.append(descriptors_1_)
+        cur_idx.value += descriptors_1_.shape[0]
         idx_arr.append(cur_idx.value)
         label_arr.append(basename)
 
 
 def extract_features_aggregate_mul(dir_name, files, i_start, i_end):
-    global g_files, g_dir_name, g_cur_idx, _LOAD_FILE_PROCESSER
+    global g_files, g_dir_name, g_cur_idx, _LOAD_FILE_PROCESSOR
     g_files = files
     g_dir_name = dir_name
     g_cur_idx = 0
@@ -89,7 +94,7 @@ def extract_features_aggregate_mul(dir_name, files, i_start, i_end):
     label_arr_=[]
 
 
-    with Pool(processes=_LOAD_FILE_PROCESSER) as pool:
+    with Pool(processes=_LOAD_FILE_PROCESSOR) as pool:
         with Manager() as manager:
             idx_arr = manager.list()
             label_arr = manager.list()
@@ -112,57 +117,17 @@ def extract_features_aggregate_mul(dir_name, files, i_start, i_end):
 
     return descriptors_,label_arr_,idx_arr_
 
-def extract_features_aggregate(dir_name, files, i_start, i_end):
-    descriptors = None
-    label_arr=[]
-    idx_arr=[]
-    cur_idx=0
-    n=0
-    for i in range(i_start, i_end):
-        #if(i>100): break
-        if(i % 100 == 0):
-            print("loading features...(%d/%d)"%(i,i_end-i_start))
-        cur_features_file = dir_name + '/' + files[i]
-        basename = os.path.basename(cur_features_file)
-        basename = os.path.splitext(basename)[0]
-        try:
-            _, _, descriptors_1, _, _ = feature_io.ReadFromFile(cur_features_file)
-        except:
-            print("load feature get error, skip...[%s]"%(cur_features_file))
-            continue
-
-        if(descriptors is None):
-            descriptors = descriptors_1
-        else:
-            #print("descriptors size:%d,%d" % (descriptors.shape[0], descriptors.shape[1]))
-            #print("descriptors_1 size:%d,%d" % (descriptors_1.shape[0], descriptors_1.shape[1]))
-            descriptors = np.concatenate((descriptors, descriptors_1), axis=0)
-        #descriptors.append(descriptors_1)
-
-        cur_idx+=descriptors_1.shape[0]
-        idx_arr.append(cur_idx)
-        label_arr.append(basename)
-        n+=1
-    if(descriptors is None): return None,[],[]
-
-    descriptors=descriptors.value
-    print("loading features done. size:%d,%d" % (descriptors.shape[0], descriptors.shape[1]))
-    #list1, list2 = zip(*sorted(zip(idx_arr, label_arr)))
-
-    return descriptors,label_arr,idx_arr
-
 def idx2label(idx, label_arr, idx_arr):
     idxs = np.searchsorted(idx_arr, idx)
     return label_arr[idxs]
 
-_DEBUG=False
 def main():
     PKL_FILE_TRAIN = 'save_train.pkl'
     PKL_FILE_TEST = 'save_test.pkl'
 
     if(_DEBUG):
         train_dir, test_dir, out_dir, loadtrain, loadtest = (
-        'ox_train_features/train', 'ox_train_features/test', 'lines_out_2', 'n', 'n')
+        'ox_train_features/train', 'ox_train_features/test', 'lines_out_3', 'n', 'n')
         train_dir_name = os.path.abspath(train_dir)
         train_files = [f for f in os.listdir(train_dir_name) if isfile(join(train_dir_name, f))]
     else:
@@ -213,7 +178,7 @@ def main():
 
     if (loadtest == 'n'):
         descriptors_query_test, label_arr_test, idx_arr_test = \
-            extract_features_aggregate_mul(test_dir_name, test_files, _TEST_FILE_NUM_START, _TEST_FILE_NUM_END)
+            extract_features_aggregate_mul(test_dir_name, test_files, _TEST_FILE_NUM_START, min(_TEST_FILE_NUM_END, len(test_files)))
         print("saving...[%s]" % (PKL_FILE_TEST))
         with open(PKL_FILE_TEST, 'wb') as f:
             pickle.dump([descriptors_query_test, label_arr_test, idx_arr_test], f)
