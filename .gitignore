@@ -90,3 +90,13 @@ ENV/
 
 # PyCharm
 .idea/
+
+# delf
+.delf
+
+# mac
+.DS_Store
+
+
+
+
