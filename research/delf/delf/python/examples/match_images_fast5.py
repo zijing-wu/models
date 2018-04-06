@@ -189,7 +189,7 @@ def main():
 
     if(_DEBUG):
         train_dir, test_dir, out_dir, loadtrain, loadtest = (
-        'ox_train_features_ds8/train', 'ox_train_features_ds8/test', 'lines_out_2', 'n', 'n')
+        'ox_train_features/train', 'ox_train_features/test', 'lines_out_2', 'n', 'n')
         train_dir_name = os.path.abspath(train_dir)
         train_files = [f for f in os.listdir(train_dir_name) if isfile(join(train_dir_name, f))]
     else:
@@ -240,7 +240,7 @@ def main():
         with open(loadtest, 'rb') as f:
             descriptors_query_test, label_arr_test, idx_arr_test = pickle.load(f)
 
-    dk_tree_train = cKDTree(descriptors_list_train)
+    dk_tree_train = cKDTree(descriptors_list_train, leafsize=1000000000)
 
     print("query size:%d,%d" % (descriptors_query_test.shape[0], descriptors_query_test.shape[1]))
     t0 = datetime.datetime.now()
