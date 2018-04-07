@@ -66,7 +66,7 @@ def f(i, i_start, i_end, descriptors, cur_idx, idx_arr, label_arr, lock):
         t1 = time.time()
         cur_n = len(idx_arr)
         total_n = len(g_files)
-        print("loading features...(%d/%d), est: %.2f m" % (cur_n, total_n, (total_n-cur_n)/(cur_n/(t1-t0))/60))
+        print("loading features...(%d/%d), est: %.2f m" % (cur_n, total_n, (total_n-cur_n)/(cur_n/(t1-g_t0))/60))
         sys.stdout.flush()
     #print("files size:%d"%(len(g_files)))
     cur_features_file = g_dir_name + '/' + g_files[i]
