@@ -63,7 +63,10 @@ g_t0=None
 def f(i, i_start, i_end, descriptors, cur_idx, idx_arr, label_arr, lock):
 
     if (i % 1000 == 0):
-        print("loading features...(%d/%d)" % (i, i_end - i_start))
+        t1 = time.time()
+        cur_n = len(idx_arr)
+        total_n = len(g_files)
+        print("loading features...(%d/%d), est: %.2f m" % (cur_n, total_n, (total_n-cur_n)/(cur_n/(t1-t0))/60))
         sys.stdout.flush()
     #print("files size:%d"%(len(g_files)))
     cur_features_file = g_dir_name + '/' + g_files[i]
@@ -87,13 +90,14 @@ def f(i, i_start, i_end, descriptors, cur_idx, idx_arr, label_arr, lock):
 
 
 def extract_features_aggregate_mul(dir_name, files, i_start, i_end):
-    global g_files, g_dir_name, g_cur_idx, _LOAD_FILE_PROCESSOR
+    global g_files, g_dir_name, g_cur_idx, _LOAD_FILE_PROCESSOR, g_t0
     g_files = files
     g_dir_name = dir_name
     g_cur_idx = 0
     descriptors_ = []
     idx_arr_=[]
     label_arr_=[]
+    g_t0 = time.time()
 
     with Pool(processes=_LOAD_FILE_PROCESSOR) as pool:
         with Manager() as manager:
