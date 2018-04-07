@@ -47,22 +47,24 @@ import pickle
 
 cmd_args = None
 
-_DEBUG = True
+_DEBUG = False
 _DISTANCE_THRESHOLD = 0.8
-_LOAD_FILE_PROCESSOR = 4
-_QUERY_PROCESSOR = 4
+_LOAD_FILE_PROCESSOR = 180
+_QUERY_PROCESSOR = 188
 _TEST_FILE_NUM_START = 0
-_TEST_FILE_NUM_END = 100
+_TEST_FILE_NUM_END = 1000
 _FEATURE_DS = 4
 
 PLOT_FIG = False
 
 g_files=[]
 g_dir_name=""
+g_t0=None
 def f(i, i_start, i_end, descriptors, cur_idx, idx_arr, label_arr, lock):
 
-    if (i % 100 == 0):
+    if (i % 1000 == 0):
         print("loading features...(%d/%d)" % (i, i_end - i_start))
+        sys.stdout.flush()
     #print("files size:%d"%(len(g_files)))
     cur_features_file = g_dir_name + '/' + g_files[i]
     basename = os.path.basename(cur_features_file)
@@ -165,9 +167,9 @@ def main():
     if(loadtrain=='n'):
         descriptors_list_train, label_arr_train, idx_arr_train = \
             extract_features_aggregate_mul(train_dir_name, train_files, 0, len(train_files))
-        print("saving...[%s]" % (PKL_FILE_TRAIN))
-        with open(PKL_FILE_TRAIN, 'wb') as f:
-            pickle.dump([descriptors_list_train, label_arr_train, idx_arr_train], f)
+        #print("saving...[%s]" % (PKL_FILE_TRAIN))
+        #with open(PKL_FILE_TRAIN, 'wb') as f:
+        #    pickle.dump([descriptors_list_train, label_arr_train, idx_arr_train], f)
     else:
         print("loading...[%s]" % (loadtrain))
         with open(loadtrain, 'rb') as f:
@@ -176,9 +178,9 @@ def main():
     if (loadtest == 'n'):
         descriptors_query_test, label_arr_test, idx_arr_test = \
             extract_features_aggregate_mul(test_dir_name, test_files, _TEST_FILE_NUM_START, min(_TEST_FILE_NUM_END, len(test_files)))
-        print("saving...[%s]" % (PKL_FILE_TEST))
-        with open(PKL_FILE_TEST, 'wb') as f:
-            pickle.dump([descriptors_query_test, label_arr_test, idx_arr_test], f)
+        #print("saving...[%s]" % (PKL_FILE_TEST))
+        #with open(PKL_FILE_TEST, 'wb') as f:
+        #    pickle.dump([descriptors_query_test, label_arr_test, idx_arr_test], f)
     else:
         print("loading...[%s]" % (loadtest))
         with open(loadtest, 'rb') as f:
@@ -188,11 +190,13 @@ def main():
 
     print("query size:%d,%d" % (descriptors_query_test.shape[0], descriptors_query_test.shape[1]))
     t0 = datetime.datetime.now()
+    sys.stdout.flush()
     _, indices = dk_tree_train.query(
         descriptors_query_test, p=2, distance_upper_bound=_DISTANCE_THRESHOLD, n_jobs=_QUERY_PROCESSOR)
     print("tree leaf size:%d"%(dk_tree_train.n))
     print("query time:")
     print(datetime.datetime.now() - t0)
+    sys.stdout.flush()
 
     start_j=0
     prev_end_j=0
