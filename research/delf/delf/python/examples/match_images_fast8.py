@@ -57,8 +57,11 @@ _LOAD_FILE_PROCESSOR = 2
 _QUERY_PROCESSOR = 2
 _TEST_FILE_NUM_START = 0
 _TEST_FILE_NUM_END = 100
-_FEATURE_DS = 4
+_FEATURE_DS = 1
 _TREE_NUM = 10
+
+_REBUILD_TREE = False
+_TREE_SAVE_FILE = 'annoy_tree.ann'
 
 PLOT_FIG = False
 
@@ -210,17 +213,18 @@ def main():
         #with open(loadtest, 'rb') as f:
         #    descriptors_query_test, label_arr_test, idx_arr_test = pickle.load(f)
 
-    print("building tree...")
     feature_size = descriptors_list_train.shape[1]
-    annoy_tree = AnnoyIndex(feature_size,  metric='euclidean') #"angular", "euclidean", "manhattan", or "hamming"
-    for i in range(descriptors_list_train.shape[0]):
-        annoy_tree.add_item(i, descriptors_list_train[i])
-    annoy_tree.build(_TREE_NUM)
-    #print("saving tree...[%s]" % (_SAVE_TREE))
-    #annoy_tree.save(_SAVE_TREE)
-
-    #u = AnnoyIndex(f)
-    #u.load('test.ann')  # super fast, will just mmap the file
+    if(_REBUILD_TREE):
+        print("building tree...")
+        annoy_tree = AnnoyIndex(feature_size, metric='euclidean') #"angular", "euclidean", "manhattan", or "hamming"
+        for i in range(descriptors_list_train.shape[0]):
+            annoy_tree.add_item(i, descriptors_list_train[i])
+        annoy_tree.build(_TREE_NUM)
+        print("saving tree...[%s]" % (_TREE_SAVE_FILE))
+        annoy_tree.save(_TREE_SAVE_FILE)
+    else:
+        annoy_tree = AnnoyIndex(feature_size, metric='euclidean')
+        annoy_tree.load(_TREE_SAVE_FILE)  # super fast, will just mmap the file
 
     #dk_tree_train = cKDTree(descriptors_list_train, leafsize=1000000000)
 
