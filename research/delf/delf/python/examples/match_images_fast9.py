@@ -59,10 +59,11 @@ _QUERY_PROCESSOR = 2
 _TEST_FILE_NUM_START = 0
 _TEST_FILE_NUM_END = 100
 _FEATURE_DS = 1
-_TREE_NUM = 10
+
+_KNN_K = 100
 
 _REBUILD_TREE = False
-_TREE_SAVE_FILE = 'annoy_tree.ann'
+_TREE_SAVE_FILE = 'save_nmslib_ds8_ds1'
 
 PLOT_FIG = False
 
@@ -137,7 +138,6 @@ def idx2label(idx, label_arr, idx_arr):
     idxs = np.searchsorted(idx_arr, idx)
     return label_arr[idxs]
 
-
 def main():
     PKL_FILE_TRAIN = 'save_train'
     PKL_FILE_TEST = 'save_test'
@@ -186,16 +186,13 @@ def main():
         print("saving...[%s]" % (PKL_FILE_TRAIN))
         np.savez(PKL_FILE_TRAIN, descriptors_list_train=descriptors_list_train,
                  label_arr_train=label_arr_train, idx_arr_train=idx_arr_train)
-        #with open(PKL_FILE_TRAIN, 'wb') as f:
-        #    pickle.dump([descriptors_list_train, label_arr_train, idx_arr_train], f)
     else:
         print("loading...[%s]" % (loadtrain))
         npzfile = np.load(loadtrain+'.npz')
-        descriptors_list_train = npzfile['descriptors_list_train']
+        if (_REBUILD_TREE):
+            descriptors_list_train = npzfile['descriptors_list_train']
         label_arr_train = npzfile['label_arr_train']
         idx_arr_train = npzfile['idx_arr_train']
-        #with open(loadtrain, 'rb') as f:
-        #    descriptors_list_train, label_arr_train, idx_arr_train = pickle.load(f)
 
     if (loadtest == 'n'):
         descriptors_query_test, label_arr_test, idx_arr_test = \
@@ -203,36 +200,26 @@ def main():
         print("saving...[%s]" % (PKL_FILE_TEST))
         np.savez(PKL_FILE_TEST, descriptors_query_test=descriptors_query_test,
                  label_arr_test=label_arr_test, idx_arr_test=idx_arr_test)
-        #with open(PKL_FILE_TEST, 'wb') as f:
-        #    pickle.dump([descriptors_query_test, label_arr_test, idx_arr_test], f)
     else:
         print("loading...[%s]" % (loadtest))
         npzfile = np.load(loadtest+'.npz')
         descriptors_query_test = npzfile['descriptors_query_test']
         label_arr_test = npzfile['label_arr_test']
         idx_arr_test = npzfile['idx_arr_test']
-        #with open(loadtest, 'rb') as f:
-        #    descriptors_query_test, label_arr_test, idx_arr_test = pickle.load(f)
 
-    '''
-    feature_size = descriptors_list_train.shape[1]
-    if(_REBUILD_TREE):
-        print("building tree...")
-        annoy_tree = AnnoyIndex(feature_size, metric='euclidean') #"angular", "euclidean", "manhattan", or "hamming"
-        for i in range(descriptors_list_train.shape[0]):
-            annoy_tree.add_item(i, descriptors_list_train[i])
-        annoy_tree.build(_TREE_NUM)
-        print("saving tree...[%s]" % (_TREE_SAVE_FILE))
-        annoy_tree.save(_TREE_SAVE_FILE)
-    else:
-        annoy_tree = AnnoyIndex(feature_size, metric='euclidean')
-        annoy_tree.load(_TREE_SAVE_FILE)  # super fast, will just mmap the file
-    '''
     # initialize a new index, using a HNSW index on Cosine Similarity
-    print("building index...")
-    index = nmslib.init(method='hnsw', space='cosinesimil')
-    index.addDataPointBatch(descriptors_list_train)
-    index.createIndex(print_progress=True)
+    if(_REBUILD_TREE):
+        print("building index...")
+        index = nmslib.init(method='hnsw', space='cosinesimil')
+        index.addDataPointBatch(descriptors_list_train)
+        index.createIndex(print_progress=True)
+
+        print("saving index...[%s]" % (_TREE_SAVE_FILE))
+        index.saveIndex(_TREE_SAVE_FILE)
+    else:
+        print("loading index...")
+        index = nmslib.init(method='hnsw', space='cosinesimil')
+        index.loadIndex(_TREE_SAVE_FILE,print_progress=True)
 
 
     #dk_tree_train = cKDTree(descriptors_list_train, leafsize=1000000000)
@@ -241,17 +228,8 @@ def main():
     t0 = datetime.datetime.now()
     sys.stdout.flush()
 
-    indices = index.knnQueryBatch(descriptors_query_test, k=1, num_threads=_QUERY_PROCESSOR)
-
-    #indices=[]
-    #for i in range(descriptors_query_test.shape[0]):
-    #    v = descriptors_query_test[i]
-    #    idx = annoy_tree.get_nns_by_vector(v, 1, search_k=-1, include_distances=False)
-    #    indices.append(idx[0])
-
-    #_, indices = dk_tree_train.query(
-    #    descriptors_query_test, p=2, distance_upper_bound=_DISTANCE_THRESHOLD, n_jobs=_QUERY_PROCESSOR)
-    #print("tree leaf size:%d"%(dk_tree_train.n))
+    # 	return a list of tuples of (ids, distances)
+    indices = index.knnQueryBatch(descriptors_query_test, k=_KNN_K, num_threads=_QUERY_PROCESSOR)
 
     print("query time:")
     print(datetime.datetime.now() - t0)
@@ -260,19 +238,18 @@ def main():
     start_j=0
     prev_end_j=0
     for i in range(len(idx_arr_test)):
+        if(i%100==0):
+            print("gen output...(%d/%d)"%(i,len(idx_arr_test)))
         test_id = label_arr_test[i]
         end_j = idx_arr_test[i]
         cur_lines={}
-        skip_num=0
         for j in range(start_j, end_j): # for each feature j in test i
-            #if indices[j] != dk_tree_train.n:
-            train_id = idx2label(indices[j][0][0], label_arr_train, idx_arr_train)
-            if train_id not in cur_lines:
-                cur_lines[train_id]=0
-            cur_lines[train_id] += 1
-            #else:
-            #    skip_num+=1
-        #print("size:%d; skip:%d\n"%(len(cur_lines),skip_num))
+            cur_idx = indices[j][0]
+            train_ids = idx2label(cur_idx, label_arr_train, idx_arr_train)
+            for train_id in train_ids:
+                if train_id not in cur_lines:
+                    cur_lines[train_id]=0
+                cur_lines[train_id] += 1
 
         start_j += (end_j-prev_end_j)
         prev_end_j=end_j
