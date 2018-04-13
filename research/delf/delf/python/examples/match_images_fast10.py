@@ -51,19 +51,21 @@ from annoy import AnnoyIndex
 
 cmd_args = None
 
-_DEBUG = True
+_DEBUG = False
 _DISTANCE_THRESHOLD = 0.8
-_LOAD_FILE_PROCESSOR = 2
-_QUERY_PROCESSOR = 2
+_LOAD_FILE_PROCESSOR = 100
+_QUERY_PROCESSOR = 800
 _TEST_FILE_NUM_START = 0
-_TEST_FILE_NUM_END = 100
+_TEST_FILE_NUM_END = 100000000
 _FEATURE_DS = 1
-_TREE_NUM = 10
-_KNN_K = 20
+_PCA_DIM = 40
+_TREE_NUM = 8
+_KNN_K = 10
 
-_REBUILD_TREE = True
-_TREE_SAVE_FILE = 'annoy_tree.ann'
+_REBUILD_TREE = False
+_TREE_SAVE_FILE = 'annoy_tree_ds8_ds1.ann'
 
+_FEATURE_SIZE = int(_PCA_DIM/_FEATURE_DS)
 PLOT_FIG = False
 
 g_files=[]
@@ -191,7 +193,8 @@ def main():
     else:
         print("loading...[%s]" % (loadtrain))
         npzfile = np.load(loadtrain+'.npz')
-        descriptors_list_train = npzfile['descriptors_list_train']
+        if(_REBUILD_TREE):
+            descriptors_list_train = npzfile['descriptors_list_train']
         label_arr_train = npzfile['label_arr_train']
         idx_arr_train = npzfile['idx_arr_train']
         #with open(loadtrain, 'rb') as f:
@@ -214,7 +217,8 @@ def main():
         #with open(loadtest, 'rb') as f:
         #    descriptors_query_test, label_arr_test, idx_arr_test = pickle.load(f)
 
-    feature_size = descriptors_list_train.shape[1]
+    #feature_size = descriptors_list_train.shape[1]
+    feature_size = _FEATURE_SIZE
     if(_REBUILD_TREE):
         print("building tree...")
         annoy_tree = AnnoyIndex(feature_size, metric='euclidean') #"angular", "euclidean", "manhattan", or "hamming"
@@ -224,6 +228,7 @@ def main():
         print("saving tree...[%s]" % (_TREE_SAVE_FILE))
         annoy_tree.save(_TREE_SAVE_FILE)
     else:
+        print("loading tree...[%s]"%(_TREE_SAVE_FILE))
         annoy_tree = AnnoyIndex(feature_size, metric='euclidean')
         annoy_tree.load(_TREE_SAVE_FILE)  # super fast, will just mmap the file
 
@@ -231,13 +236,17 @@ def main():
 
     print("query size:%d,%d" % (descriptors_query_test.shape[0], descriptors_query_test.shape[1]))
     t0 = datetime.datetime.now()
-    sys.stdout.flush()
+    #print("===1")
+    #sys.stdout.flush()
 
     indices=[]
     for i in range(descriptors_query_test.shape[0]):
+        print("====>%d\n"%(i))
         v = descriptors_query_test[i]
+        print("--\n")
         idx = annoy_tree.get_nns_by_vector(v, _KNN_K, search_k=-1, include_distances=False)
         indices.append(idx)
+        print("<===%d\n"%(i))
 
     #_, indices = dk_tree_train.query(
     #    descriptors_query_test, p=2, distance_upper_bound=_DISTANCE_THRESHOLD, n_jobs=_QUERY_PROCESSOR)
@@ -245,7 +254,7 @@ def main():
 
     print("query time:")
     print(datetime.datetime.now() - t0)
-    sys.stdout.flush()
+    #sys.stdout.flush()
 
     start_j=0
     prev_end_j=0
@@ -256,11 +265,16 @@ def main():
         skip_num=0
         for j in range(start_j, end_j): # for each feature j in test i
             #if indices[j] != dk_tree_train.n:
-            for idx in indices[j]:
-                train_id = idx2label(idx, label_arr_train, idx_arr_train)
+            train_ids = idx2label(indices[j], label_arr_train, idx_arr_train)
+            for train_id in train_ids:
                 if train_id not in cur_lines:
                     cur_lines[train_id]=0
-                cur_lines[train_id] += 1
+                cur_lines[train_id] += 1            
+            #for idx in indices[j]:
+            #    train_id = idx2label(idx, label_arr_train, idx_arr_train)
+            #    if train_id not in cur_lines:
+            #        cur_lines[train_id]=0
+            #    cur_lines[train_id] += 1
             #else:
             #    skip_num+=1
         #print("size:%d; skip:%d\n"%(len(cur_lines),skip_num))
