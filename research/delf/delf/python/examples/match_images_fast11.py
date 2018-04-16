@@ -141,7 +141,7 @@ def idx2label(idx, label_arr, idx_arr):
     return ret
 
 annoy_tree, descriptors_query_test = None, None
-def f2(i, cur_idx, lock, M, indices):
+def f2(i, cur_idx, lock, M):
     cur_idx_value = cur_idx.value
     if (i % 1000 == 0):
         t1 = time.time()
@@ -153,12 +153,12 @@ def f2(i, cur_idx, lock, M, indices):
 
     v = descriptors_query_test[i]
     idx = annoy_tree.get_nns_by_vector(v, _KNN_K, search_k=-1, include_distances=False)
-    indices[i] = idx
     with lock:
         cur_idx.value += 1
+    return idx
 
 def main():
-    global annoy_tree, descriptors_query_test
+    global annoy_tree, descriptors_query_test, g_indices
 
     PKL_FILE_TRAIN = 'save_train'
     PKL_FILE_TEST = 'save_test'
@@ -247,19 +247,15 @@ def main():
     t0 = datetime.datetime.now()
     sys.stdout.flush()
 
-    indices = [[] for i in range(M)]
     with Pool(processes=_QUERY_PROCESSOR) as pool:
         with Manager() as manager:
             cur_idx = manager.Value('i', 0)
             lock = manager.Lock()
-            indices_ = manager.list(indices)
-            pool.starmap(f2, product(range(0, M), [cur_idx], [lock], [manager.Value('i', M)], [indices_]))
-
-            for i in range(len(indices_)):
-                indices[i]=indices_[i]
+            indices = pool.starmap(f2, product(range(0, M), [cur_idx], [lock], [manager.Value('i', M)]))
 
     print("query time:")
     print(datetime.datetime.now() - t0)
+    print("indices size:"+str(len(indices)))
 
     start_j=0
     prev_end_j=0
