@@ -29,10 +29,11 @@ import sys
 import csv
 
 import numpy as np
-#from scipy.spatial import cKDTree
-#import tensorflow as tf
 
-#from delf import feature_io
+from scipy.spatial import cKDTree
+import tensorflow as tf
+from delf import feature_io
+
 from os.path import isfile, join
 import datetime
 import time
@@ -51,18 +52,20 @@ from annoy import AnnoyIndex
 
 cmd_args = None
 
-_DEBUG = False
+_DEBUG = True
 _DISTANCE_THRESHOLD = 0.8
-_LOAD_FILE_PROCESSOR = 32
-_QUERY_PROCESSOR = 32
+_LOAD_FILE_PROCESSOR = 2
+_QUERY_PROCESSOR = 2
 _TEST_FILE_NUM_START = 0
 _TEST_FILE_NUM_END = 100000000
 _FEATURE_DS = 1
 _PCA_DIM = 40
 _TREE_NUM = 8
-_KNN_K = 500
+_KNN_K = 10
 
-_REBUILD_TREE = False
+_MIN_LINES = 5
+
+_REBUILD_TREE = True
 _TREE_SAVE_FILE = 'annoy_tree_ds8_ds1.ann'
 
 _FEATURE_SIZE = int(_PCA_DIM/_FEATURE_DS)
@@ -141,7 +144,7 @@ def idx2label(idx, label_arr, idx_arr):
     return ret
 
 annoy_tree, descriptors_query_test = None, None
-def f2(i, cur_idx, lock, M):
+def f2(i, M):
     #cur_idx_value = cur_idx.value
     cur_idx_value = i
     if (i % 5000 == 0):
@@ -158,8 +161,34 @@ def f2(i, cur_idx, lock, M):
     #    cur_idx.value += 1
     return idx
 
+idx_arr_test, label_arr_train, idx_arr_train, indices = None, None, None, None
+def f3(i):
+    if (i % 1000 == 0):
+        print("processing output...(%d/%d)" % (i, len(idx_arr_test)))
+
+    if (i == 0):
+        start_j = 0
+    else:
+        start_j = idx_arr_test[i - 1]
+    end_j = idx_arr_test[i]
+
+    cur_lines = {}
+    cur_train_id = []
+    for j in range(start_j, end_j):  # for each feature j in test i
+        train_ids = idx2label(indices[j], label_arr_train, idx_arr_train)
+        for train_id in train_ids:
+            if train_id not in cur_lines:
+                cur_lines[train_id] = 0
+                cur_train_id.append(train_id)
+            cur_lines[train_id] += 1
+    for train_id in cur_train_id:      # save memory
+        if(cur_lines[train_id]<_MIN_LINES):
+            cur_lines.pop(train_id, None)
+    return cur_lines
+
 def main():
     global annoy_tree, descriptors_query_test, g_t0
+    global idx_arr_test, label_arr_train, idx_arr_train, indices # for f3
 
     PKL_FILE_TRAIN = 'save_train'
     PKL_FILE_TEST = 'save_test'
@@ -251,40 +280,18 @@ def main():
     g_t0 = time.time()
     with Pool(processes=_QUERY_PROCESSOR) as pool:
         with Manager() as manager:
-            cur_idx = manager.Value('i', 0)
-            lock = manager.Lock()
-            g_t0 = time.time()
-            indices = pool.starmap(f2, product(range(0, M), [cur_idx], [lock], [manager.Value('i', M)]))
+            indices = pool.starmap(f2, product(range(0, M), [manager.Value('i', M)]))
 
     print("query time:")
     print(datetime.datetime.now() - t0)
     print("indices size:"+str(len(indices)))
 
-    start_j=0
-    prev_end_j=0
-    data_lines={}
-    for i in range(len(idx_arr_test)):
-        if (i % 1000 == 0):
-            print("processing output...(%d/%d)" % (i, len(idx_arr_test)))
-        test_id = label_arr_test[i]
-        end_j = idx_arr_test[i]
-        cur_lines={}
-        for j in range(start_j, end_j): # for each feature j in test i
-            train_ids = idx2label(indices[j], label_arr_train, idx_arr_train)
-            for train_id in train_ids:
-                if train_id not in cur_lines:
-                    cur_lines[train_id]=0
-                cur_lines[train_id] += 1
-
-        data_lines[test_id] = cur_lines
-
-        start_j += (end_j-prev_end_j)
-        prev_end_j=end_j
+    with Pool(processes=_QUERY_PROCESSOR) as pool:
+        data_lines = pool.starmap(f3, product(range(0, len(idx_arr_test))))
 
     out_file_path = out_dir
     print("saving output...[%s.npz]" % (out_file_path))
-    np.savez(out_file_path, data_lines=data_lines)
-
+    np.savez(out_file_path, data_lines=data_lines, label_arr_test=label_arr_test)
 
 if __name__ == '__main__':
     t0 = datetime.datetime.now()

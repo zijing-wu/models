@@ -7,7 +7,7 @@ import os
 import numpy as np
 from os.path import basename
 
-_DEBUG=False
+_DEBUG=True
 def main():
    if(_DEBUG):
       (INPUT_LINES_NPZ, LINES_THRESHOLD, TRAIN_CSV, TEST_CSV, OUT_NAME)=("lines_out_32_2.npz", 0, "data_retrieval/train.csv", "data_retrieval/test.csv", "ds2_1wx1w")
@@ -21,6 +21,7 @@ def main():
    print("loading...[%s]" % (INPUT_LINES_NPZ))
    npzfile = np.load(INPUT_LINES_NPZ)
    data_lines = npzfile['data_lines'][()]
+   label_arr_test = npzfile['label_arr_test'][()]
 
    reader = csv.reader(open(TEST_CSV, "r"), delimiter=",")
    csv_test_id = []
@@ -50,12 +51,12 @@ def main():
    out_clas={} #test_id->(train_id1, prob)
 
    i=0
-   for test_id in data_lines:
+   for i in range(len(label_arr_test)):
       if(i%1000==0):
          print("processing...[%d/%d]"%(i,len(data_lines)))
-      i += 1
 
-      cur_lines = data_lines[test_id]
+      test_id = label_arr_test[i]
+      cur_lines = data_lines[i]
 
       cur_id_list=[]
       cur_line_list=[]
