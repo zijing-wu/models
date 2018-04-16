@@ -29,10 +29,10 @@ import sys
 import csv
 
 import numpy as np
-from scipy.spatial import cKDTree
-import tensorflow as tf
+#from scipy.spatial import cKDTree
+#import tensorflow as tf
 
-from delf import feature_io
+#from delf import feature_io
 from os.path import isfile, join
 import datetime
 import time
@@ -51,18 +51,18 @@ from annoy import AnnoyIndex
 
 cmd_args = None
 
-_DEBUG = True
+_DEBUG = False
 _DISTANCE_THRESHOLD = 0.8
-_LOAD_FILE_PROCESSOR = 4
-_QUERY_PROCESSOR = 4
+_LOAD_FILE_PROCESSOR = 32
+_QUERY_PROCESSOR = 32
 _TEST_FILE_NUM_START = 0
 _TEST_FILE_NUM_END = 100000000
 _FEATURE_DS = 1
 _PCA_DIM = 40
 _TREE_NUM = 8
-_KNN_K = 10
+_KNN_K = 500
 
-_REBUILD_TREE = True
+_REBUILD_TREE = False
 _TREE_SAVE_FILE = 'annoy_tree_ds8_ds1.ann'
 
 _FEATURE_SIZE = int(_PCA_DIM/_FEATURE_DS)
@@ -142,8 +142,9 @@ def idx2label(idx, label_arr, idx_arr):
 
 annoy_tree, descriptors_query_test = None, None
 def f2(i, cur_idx, lock, M):
-    cur_idx_value = cur_idx.value
-    if (i % 1000 == 0):
+    #cur_idx_value = cur_idx.value
+    cur_idx_value = i
+    if (i % 5000 == 0):
         t1 = time.time()
         total_n = M.value
         dt = t1-g_t0
@@ -153,12 +154,12 @@ def f2(i, cur_idx, lock, M):
 
     v = descriptors_query_test[i]
     idx = annoy_tree.get_nns_by_vector(v, _KNN_K, search_k=-1, include_distances=False)
-    with lock:
-        cur_idx.value += 1
+    #with lock:
+    #    cur_idx.value += 1
     return idx
 
 def main():
-    global annoy_tree, descriptors_query_test, g_indices
+    global annoy_tree, descriptors_query_test, g_t0
 
     PKL_FILE_TRAIN = 'save_train'
     PKL_FILE_TEST = 'save_test'
@@ -247,10 +248,12 @@ def main():
     t0 = datetime.datetime.now()
     sys.stdout.flush()
 
+    g_t0 = time.time()
     with Pool(processes=_QUERY_PROCESSOR) as pool:
         with Manager() as manager:
             cur_idx = manager.Value('i', 0)
             lock = manager.Lock()
+            g_t0 = time.time()
             indices = pool.starmap(f2, product(range(0, M), [cur_idx], [lock], [manager.Value('i', M)]))
 
     print("query time:")
