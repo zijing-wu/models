@@ -7,8 +7,28 @@ import os
 import numpy as np
 from os.path import basename
 
+from multiprocessing import Pool
+from itertools import product
+
+_QUERY_PROCESSOR = 4
 _DEBUG=False
+
+csv_test_id, out_clas, csv_train_id2label = None, None, None
+def save_output(i):
+   test_id = csv_test_id[i]
+   if (i % 1000 == 0):
+      print("genearte output csv...(%d/%d)" % (i, len(csv_test_id)))
+
+   if ((test_id in out_clas) and (out_clas[test_id] is not None)):
+      (cur_id_list, cur_line_list, prob_list) = out_clas[test_id]
+      ret_str = "%s,%s %.2f\n" % (test_id, csv_train_id2label[cur_id_list[0]], 1)
+   else:
+      ret_str = "%s,%s %.2f\n" % (test_id, csv_train_id2label[list(csv_train_id2label)[0]], 1)
+   return ret_str
+
+
 def main():
+   global csv_test_id, out_clas, csv_train_id2label
    if(_DEBUG):
       (INPUT_LINES_NPZ, NPZ_PART_NUM, LINES_THRESHOLD, TRAIN_CSV, TEST_CSV, OUT_NAME)=("lines_out_test", 4, 20, "data_retrieval/train.csv", "data_retrieval/test.csv", "test")
    else:
@@ -86,9 +106,9 @@ def main():
          cur_line_list.append(lines_num)
 
       if(len(cur_id_list)==0):
-          out_retr[test_id] = []
-          out_clas[test_id] = None
-          continue
+         out_retr[test_id] = []
+         out_clas[test_id] = None
+         continue
 
       cur_line_list, cur_id_list = zip(*sorted(zip(cur_line_list, cur_id_list), reverse=True))
       out_retr[test_id] = cur_id_list
@@ -136,25 +156,16 @@ def main():
       #         row = ' '
       #      the_file.write("%s,%s\n" % (test_id, row))
 
+      out_str = "id,landmarks\n"
+
+      with Pool(processes=_QUERY_PROCESSOR) as pool:
+         out_str_list = pool.starmap(save_output, product(range(0, len(csv_test_id))))
+
+      out_str += "".join(out_str_list)
+
       with open(OUT_CLAS_FILE, 'w') as the_file:
-         #the_file.write("id,landmarks\n")
-         out_str = "id,landmarks\n"
-         n = 0
-         for test_id in csv_test_id:
-            if(n%1000==0):
-               print("genearte output csv...(%d/%d)" % (n, len(csv_test_id)))
-            n += 1
-            if((test_id in out_clas) and (out_clas[test_id] is not None)):
-               (cur_id_list, cur_line_list, prob_list) = out_clas[test_id]
-               #the_file.write("%s,%s %.2f\n" % (test_id, csv_train_id2label[cur_id_list[0]], prob_list[0]))
-               #the_file.write("%s,%s %.2f\n" % (test_id, csv_train_id2label[cur_id_list[0]], 1))
-               out_str += "%s,%s %.2f\n" % (test_id, csv_train_id2label[cur_id_list[0]], 1)
-            else:
-               out_str += "%s,%s %.2f\n" % (test_id,csv_train_id2label[list(csv_train_id2label)[0]], 1)
-               # use label 1
-               #the_file.write("%s,%s %.2f\n" % (test_id,csv_train_id2label[list(csv_train_id2label)[0]], 1))
          the_file.write(out_str)
    print("done.")
 
 if __name__ == '__main__':
-    main()
+   main()
