@@ -7,21 +7,33 @@ import os
 import numpy as np
 from os.path import basename
 
-_DEBUG=False
+_DEBUG=True
 def main():
    if(_DEBUG):
-      (INPUT_LINES_NPZ, LINES_THRESHOLD, TRAIN_CSV, TEST_CSV, OUT_NAME)=("lines_out_test.npz", 0, "data_retrieval/train.csv", "data_retrieval/test.csv", "test")
+      (INPUT_LINES_NPZ, NPZ_PART_NUM, LINES_THRESHOLD, TRAIN_CSV, TEST_CSV, OUT_NAME)=("lines_out_test", 4, 20, "data_retrieval/train.csv", "data_retrieval/test.csv", "test")
    else:
       if len(sys.argv) != 6:
-         print('Syntax: {} <INPUT_LINES_NPZ> <LINES_THRESHOLD> <TRAIN_CSV> <TEST_CSV> <OUT_FILENAME>'.format(sys.argv[0]))
+         print('Syntax: {} <INPUT_LINES_NPZ_PREFIX> <NPZ_PART_NUM> <LINES_THRESHOLD> <TRAIN_CSV> <TEST_CSV> <OUT_FILENAME>'.format(sys.argv[0]))
          sys.exit(0)
-      (INPUT_LINES_NPZ, LINES_THRESHOLD, TRAIN_CSV, TEST_CSV, OUT_NAME) = sys.argv[1:]
+      (INPUT_LINES_NPZ, NPZ_PART_NUM, LINES_THRESHOLD, TRAIN_CSV, TEST_CSV, OUT_NAME) = sys.argv[1:]
       LINES_THRESHOLD=int(LINES_THRESHOLD)
+      NPZ_PART_NUM = int(NPZ_PART_NUM)
 
-   print("loading...[%s]" % (INPUT_LINES_NPZ))
-   npzfile = np.load(INPUT_LINES_NPZ)
-   data_lines = npzfile['data_lines'][()]
-   label_arr_test = npzfile['label_arr_test'][()]
+   data_lines, label_arr_test = None, None
+   for j in range(NPZ_PART_NUM):
+      file_path = "%s_%d.npz" %(INPUT_LINES_NPZ, j)
+      print("loading...[%s]" % (file_path))
+      npzfile = np.load(file_path)
+      data_lines_ = npzfile['data_lines'][()]
+      if(data_lines is None):
+         data_lines = data_lines_
+      else:
+         data_lines = np.concatenate((data_lines, data_lines_), axis=0)
+      if(label_arr_test is None):
+         label_arr_test = npzfile['label_arr_test'][()]
+   print("data_lines size:"+str(data_lines.shape))
+   print("label_arr_test size:" + str(label_arr_test.shape))
+
 
    reader = csv.reader(open(TEST_CSV, "r"), delimiter=",")
    csv_test_id = []
