@@ -7,12 +7,12 @@ import os
 import numpy as np
 from os.path import basename
 
-_DEBUG=True
+_DEBUG=False
 def main():
    if(_DEBUG):
       (INPUT_LINES_NPZ, NPZ_PART_NUM, LINES_THRESHOLD, TRAIN_CSV, TEST_CSV, OUT_NAME)=("lines_out_test", 4, 20, "data_retrieval/train.csv", "data_retrieval/test.csv", "test")
    else:
-      if len(sys.argv) != 6:
+      if len(sys.argv) != 7:
          print('Syntax: {} <INPUT_LINES_NPZ_PREFIX> <NPZ_PART_NUM> <LINES_THRESHOLD> <TRAIN_CSV> <TEST_CSV> <OUT_FILENAME>'.format(sys.argv[0]))
          sys.exit(0)
       (INPUT_LINES_NPZ, NPZ_PART_NUM, LINES_THRESHOLD, TRAIN_CSV, TEST_CSV, OUT_NAME) = sys.argv[1:]
@@ -126,27 +126,34 @@ def main():
             else:
                the_file.write("%s, \n" % (test_id))
    else:
-      with open(OUT_RETR_FILE, 'w') as the_file:
-         the_file.write("id,images\n")
-         for test_id in csv_test_id:
-            if test_id in out_retr:
-               train_ids = out_retr[test_id]
-               row = ' '.join(train_ids)
-            else:
-               row = ' '
-            the_file.write("%s,%s\n" % (test_id, row))
+      #with open(OUT_RETR_FILE, 'w') as the_file:
+      #   the_file.write("id,images\n")
+      #   for test_id in csv_test_id:
+      #      if test_id in out_retr:
+      #         train_ids = out_retr[test_id]
+      #         row = ' '.join(train_ids)
+      #      else:
+      #         row = ' '
+      #      the_file.write("%s,%s\n" % (test_id, row))
 
       with open(OUT_CLAS_FILE, 'w') as the_file:
-         the_file.write("id,landmarks\n")
+         #the_file.write("id,landmarks\n")
+         out_str = "id,landmarks\n"
+         n = 0
          for test_id in csv_test_id:
+            if(n%1000==0):
+               print("genearte output csv...(%d/%d)" % (n, len(csv_test_id)))
+            n += 1
             if((test_id in out_clas) and (out_clas[test_id] is not None)):
                (cur_id_list, cur_line_list, prob_list) = out_clas[test_id]
                #the_file.write("%s,%s %.2f\n" % (test_id, csv_train_id2label[cur_id_list[0]], prob_list[0]))
-               the_file.write("%s,%s %.2f\n" % (test_id, csv_train_id2label[cur_id_list[0]], 1))
+               #the_file.write("%s,%s %.2f\n" % (test_id, csv_train_id2label[cur_id_list[0]], 1))
+               out_str += "%s,%s %.2f\n" % (test_id, csv_train_id2label[cur_id_list[0]], 1)
             else:
+               out_str += "%s,%s %.2f\n" % (test_id,csv_train_id2label[list(csv_train_id2label)[0]], 1)
                # use label 1
-               the_file.write("%s,%s %.2f\n" % (test_id,csv_train_id2label[csv_train_id2label.keys()[0]], 1))
-
+               #the_file.write("%s,%s %.2f\n" % (test_id,csv_train_id2label[list(csv_train_id2label)[0]], 1))
+         the_file.write(out_str)
    print("done.")
 
 if __name__ == '__main__':
