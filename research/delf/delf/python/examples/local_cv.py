@@ -37,14 +37,13 @@ def main():
                 continue
             N += 1
             id = row[0]
-            label = row[1].split()[0]
-            rel = row[1].split()[1]
-            if label == id2label_dict[id]:
-                GAP += float(rel)
+            if(row[1]!=" "):
+                label = row[1].split()[0]
+                rel = row[1].split()[1]
+                if label == id2label_dict[id]:
+                    GAP += float(rel)
 
     print(GAP/N)
-
-
 
 if __name__ == '__main__':
     main()
