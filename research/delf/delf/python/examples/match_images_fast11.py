@@ -30,9 +30,9 @@ import csv
 
 import numpy as np
 
-from scipy.spatial import cKDTree
-import tensorflow as tf
-from delf import feature_io
+#from scipy.spatial import cKDTree
+#import tensorflow as tf
+#from delf import feature_io
 
 from os.path import isfile, join
 import datetime
@@ -52,20 +52,20 @@ from annoy import AnnoyIndex
 
 cmd_args = None
 
-_DEBUG = True
+_DEBUG = False
 _DISTANCE_THRESHOLD = 0.8
-_LOAD_FILE_PROCESSOR = 2
-_QUERY_PROCESSOR = 2
+_LOAD_FILE_PROCESSOR = 32
+_QUERY_PROCESSOR = 32
 _TEST_FILE_NUM_START = 0
 _TEST_FILE_NUM_END = 100000000
 _FEATURE_DS = 1
 _PCA_DIM = 40
 _TREE_NUM = 8
-_KNN_K = 10
+_KNN_K = 500
 
-_MIN_LINES = 5
+_MIN_LINES = 10
 
-_REBUILD_TREE = True
+_REBUILD_TREE = False
 _TREE_SAVE_FILE = 'annoy_tree_ds8_ds1.ann'
 
 _FEATURE_SIZE = int(_PCA_DIM/_FEATURE_DS)
