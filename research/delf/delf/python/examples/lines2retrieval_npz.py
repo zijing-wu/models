@@ -7,7 +7,7 @@ import os
 import numpy as np
 from os.path import basename
 
-_DEBUG=True
+_DEBUG=False
 def main():
    if(_DEBUG):
       (INPUT_LINES_NPZ, LINES_THRESHOLD, TRAIN_CSV, TEST_CSV, OUT_NAME)=("lines_out_32_2.npz", 0, "data_retrieval/train.csv", "data_retrieval/test.csv", "ds2_1wx1w")
